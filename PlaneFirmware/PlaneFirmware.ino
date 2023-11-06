@@ -3,6 +3,7 @@
 #include "RF24.h"     //the library which helps us to control the radio modem
 
 Servo myServo;        //define the servo name
+Servo myServo1;
 
 #define CE_PIN  22
 #define CSN_PIN 21
@@ -14,10 +15,11 @@ bool radioNumber = 1;
 bool role = false;  // true = TX node, false = RX node
 
 
-int msg[1];
+int msg[2];
 
 void setup(){
   myServo.attach(17);                //3 is a digital pin to which servo signal connected.
+  myServo1.attach(16);                //3 is a digital pin to which servo signal connected.
 
 
   Serial.begin(115200);
@@ -47,9 +49,14 @@ void loop(){
   uint8_t pipe;
   if (radio.available(&pipe)) {            //checks whether any data have arrived at the address of the modem
     bool done = false;              //returns a “true” value if we received some data, or “false” if no data.
-    radio.read(&msg, 1);
-    Serial.println(msg[0]);
+    radio.read(&msg, 2);
+    Serial.print(msg[0]);
+    Serial.print("  ");
+    Serial.println(msg[1]);
+
     myServo.write(msg[0]);
+    myServo1.write(msg[1]);
+
     
   }
 }
