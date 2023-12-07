@@ -1,3 +1,5 @@
+
+#include <Arduino.h>
 #include <SPI.h>                      //the communication interface with the modem
 #include "RF24.h"                     //the library which helps us to control the radio modem
 
@@ -11,21 +13,23 @@ bool radioNumber = 0;
 bool role = true;  // true = TX node, false = RX node
 
 
-int msg[2];
+int msg[32];
 int sendDelay = 50;
 
 
 void setup(void) {
   Serial.begin(115200);
-  while (!Serial) {
-    // some boards need to wait to ensure access to serial over USB
-  }
+  while (!Serial);
   if (!radio.begin()) {
     Serial.println(F("radio hardware is not responding!!"));
-    while (1) {}  // hold in infinite loop
+    while (!radio.begin()) {
+      Serial.print(".");
+      delay(100);
+    }
+  } else { 
+    Serial.println(F("Radio started"));
   }
 
-  //  radio.begin();                      //it activates the modem.
   radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
 
   radio.openWritingPipe(address[radioNumber]);  // always uses pipe 0
@@ -40,15 +44,25 @@ void setup(void) {
 
 }
 
+struct ControllerData
+{
+  int leftVertical = 0;
+  int leftHorizontal = 0;
+  int rightVertical = 0;
+  int rightHorizontal = 0;
+};
+
+ControllerData controllerData;
+
 void loop(void) {
-  msg[0] =  map(analogRead(34), 0, 4095, 0, 180);
-  msg[1] = map(analogRead(35), 0, 4095, 0, 180);
-  bool report = radio.write(msg, sizeof(msg));
+  controllerData.leftVertical =  map(analogRead(34), 0, 4095, 0, 180);
+  controllerData.leftHorizontal = map(analogRead(35), 0, 4095, 0, 180);
+  bool report = radio.write(&controllerData, sizeof(controllerData));
   if (report) {
     Serial.println(F("Transmission successful! "));  // payload was delivered
-    Serial.print(msg[0]);
+    Serial.print(controllerData.leftVertical);
     Serial.print("   ");
-    Serial.println(msg[1]);
+    Serial.println(controllerData.leftHorizontal);
     delay(sendDelay);
   } else {
     Serial.println(F("Transmission failed or timed out"));  // payload was not delivered

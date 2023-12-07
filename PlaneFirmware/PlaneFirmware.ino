@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ESP32Servo.h>
 #include <SPI.h>      //the communication interface with the modem
 #include "RF24.h"     //the library which helps us to control the radio modem
@@ -15,23 +16,24 @@ bool radioNumber = 1;
 bool role = false;  // true = TX node, false = RX node
 
 
-int msg[2];
+int msg[32];
 
 void setup(){
   myServo.attach(17);                //3 is a digital pin to which servo signal connected.
   myServo1.attach(16);                //3 is a digital pin to which servo signal connected.
 
-
   Serial.begin(115200);
-  while (!Serial) {
-    // some boards need to wait to ensure access to serial over USB
-  }
+  while (!Serial);
+
   if (!radio.begin()) {
     Serial.println(F("radio hardware is not responding!!"));
-    while (1) {}  // hold in infinite loop
+    while (!radio.begin()) {
+      Serial.print(".");
+      delay(100);
+    }
+  } else {
+    Serial.println(F("Radio started"));
   }
-
-  Serial.println(F("Radio started"));
   
   radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
 
@@ -45,17 +47,25 @@ void setup(){
   }
 }
 
+struct ControllerData
+{
+  int leftVertical = 0;
+  int leftHorizontal = 0;
+  int rightVertical = 0;
+  int rightHorizontal = 0;
+};
+
+ControllerData controllerData;
+
 void loop(){
   uint8_t pipe;
   if (radio.available(&pipe)) {            //checks whether any data have arrived at the address of the modem
     bool done = false;              //returns a “true” value if we received some data, or “false” if no data.
-    radio.read(&msg, 2);
-    Serial.print(msg[0]);
-    Serial.print("  ");
-    Serial.println(msg[1]);
+    radio.read(&controllerData, sizeof(controllerData));
+    Serial.print(controllerData);
 
-    myServo.write(msg[0]);
-    myServo1.write(msg[1]);
+    myServo.write(controllerData.leftVertical);
+    myServo1.write(controllerData.leftHorizontal);
 
     
   }
